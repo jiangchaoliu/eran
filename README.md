@@ -68,7 +68,7 @@ python3 valid_wrong.py acnn.h5 valid.csv wrong.csv
 It will generate at most 100 valid and wrong images on acnn.h5 saved in valid.csv and wrong.csv respectively
 
 
-
+Experiments on minimal distortion from CLEVER can be conducted with the code [here](https://github.com/jiangchaoliu/CLEVER.git)
 
 
 
