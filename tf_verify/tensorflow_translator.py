@@ -101,10 +101,10 @@ class TFTranslator:
 				assert 0, "ERAN can't recognize this input"
 		
 		if session is None:
-			session = tf.get_default_session()
+			session = tf.compat.v1.get_default_session()
 		
 		tmp = graph_util.convert_variables_to_constants(session, model.graph.as_graph_def(), output_names)
-		self.graph_def = graph_util.remove_training_nodes(tmp)	
+		self.graph_def = tf.compat.v1.graph_util.remove_training_nodes(tmp)	
 	
 	
 		
@@ -127,7 +127,7 @@ class TFTranslator:
 		operations_to_be_ignored_without_reshape = ["NoOp", "Assign", "Const", "RestoreV2", "SaveV2", "IsVariableInitialized", "Identity"]
 
 		with tf.Graph().as_default() as graph:
-			with tf.Session() as sess:
+			with tf.compat.v1.Session() as sess:
 				self.sess = sess
 				tf.import_graph_def(self.graph_def)
 				for op in graph.get_operations():
@@ -185,8 +185,8 @@ class TFTranslator:
 						operation_resources.append({'deepzono':deepzono_res, 'deeppoly':deeppoly_res})
 					elif op.type == "MaxPool":
 						image_shape, window_size, strides, pad_top, pad_left = self.maxpool_resources(op)
-						deeppoly_res =  (image_shape, window_size, strides, pad_top, pad_left) + in_out_info
-						deepzono_res = deeppoly_res
+						deeppoly_res =  (image_shape, window_size, in_out_info[2]) + in_out_info
+						deepzono_res = (image_shape, window_size, strides, pad_top, pad_left) + in_out_info
 						operation_resources.append({'deepzono':deepzono_res, 'deeppoly':deeppoly_res})
 					elif op.type in ["Placeholder", "PlaceholderWithDefault"]:
 						deeppoly_res = in_out_info

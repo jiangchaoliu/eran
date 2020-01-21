@@ -64,10 +64,10 @@ tf.InteractiveSession().as_default()
 
 
 def read_tensorflow_net(net_file, in_len, is_trained_with_pytorch):
-    mean = 0.0
-    std = 0.0
+    mean = [0.0]
+    std = [0.0]
     net = open(net_file,'r')
-    x = tf.placeholder(tf.float64, [in_len], name = "x")
+    x = tf.compat.v1.placeholder(tf.float64, [in_len], name = "x")
     y = None
     z1 = None
     z2 = None

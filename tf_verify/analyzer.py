@@ -2,12 +2,13 @@
 @author: Adrian Hoffmann
 '''
 
+import numpy as np
 from elina_abstract0 import *
 from elina_manager import *
 from deeppoly_nodes import *
 from deepzono_nodes import *
 from functools import reduce
-import gc
+import ctypes
 
 class layers:
     def __init__(self):
@@ -27,6 +28,8 @@ class layers:
         self.conv_counter = 0
         self.residual_counter = 0
         self.maxpool_counter = 0
+        self.maxpool_lb = []
+        self.maxpool_ub = []
         self.specLB = []
         self.specUB = []
         self.original = []
@@ -34,14 +37,8 @@ class layers:
         self.predecessors = []
         self.lastlayer = None
 
-    def calc_layerno(self):
-        return self.ffn_counter + self.conv_counter + self.residual_counter + self.maxpool_counter
-
-    def is_ffn(self):
-        return not any(x in ['Conv2D', 'Conv2DNoReLU', 'Resadd', 'Resaddnorelu'] for x in self.layertypes)
-
 class Analyzer:
-    def __init__(self, ir_list, nn, domain, timeout_lp, timeout_milp, specnumber, use_area_heuristic, testing = False):
+    def __init__(self, ir_list, nn, domain, timeout_lp, timeout_milp, specnumber, use_area_heuristic):
         """
         Arguments
         ---------
@@ -66,9 +63,7 @@ class Analyzer:
         self.timeout_lp = timeout_lp
         self.timeout_milp = timeout_milp
         self.specnumber = specnumber
-        self.use_area_heuristic = use_area_heuristic
-        self.testing = testing
-        self.relu_groups = []
+        self.use_area_heuristic = use_area_heuristic    
 
     
     def __del__(self):
@@ -82,23 +77,11 @@ class Analyzer:
         element = self.ir_list[0].transformer(self.man)
         nlb = []
         nub = []
-        testing_nlb = []
-        testing_nub = []
         for i in range(1, len(self.ir_list)):
             if self.domain == 'deepzono' or self.domain == 'refinezono':
-                element_test_bounds = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, self.domain=='refinezono', self.timeout_lp, self.timeout_milp, self.testing)
+                element = self.ir_list[i].transformer(self.nn, self.man, element, nlb,nub, self.domain=='refinezono', self.timeout_lp, self.timeout_milp)
             else:
-                element_test_bounds = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.relu_groups, self.domain=='refinepoly', self.timeout_lp, self.timeout_milp, self.use_area_heuristic, self.testing)
-
-            if isinstance(element_test_bounds, tuple):
-                element, test_lb, test_ub = element_test_bounds
-                testing_nlb.append(test_lb)
-                testing_nub.append(test_ub)
-            else:
-                element = element_test_bounds
-        gc.collect()
-        if self.testing:
-            return element, testing_nlb, testing_nub
+                element = self.ir_list[i].transformer(self.nn, self.man, element, nlb, nub, self.domain=='refinepoly', self.timeout_lp, self.timeout_milp, self.use_area_heuristic)
         return element, nlb, nub
     
     
@@ -111,59 +94,31 @@ class Analyzer:
         output: int
             index of the dominant class. If no class dominates then returns -1
         """
-        element, nlb, nub = self.get_abstract0()
+        element, nlb, nub  = self.get_abstract0()
         output_size = 0
         if self.domain == 'deepzono' or self.domain == 'refinezono':
             output_size = self.ir_list[-1].output_length
         else:
             output_size = reduce(lambda x,y: x*y, self.ir_list[-1].bias.shape, 1)
+
+        #bounds = elina_abstract0_to_box(self.man,element)
+        #for i in range(output_size):
+        #    print("inf", bounds[i].contents.inf.contents.val.dbl, "sup", bounds[i].contents.sup.contents.val.dbl)
+        #elina_interval_array_free(bounds,output_size)
     
         dominant_class = -1
-        if(self.domain=='refinepoly'):
-
-            relu_needed = [1] * self.nn.numlayer
-            self.nn.ffn_counter = 0
-            self.nn.conv_counter = 0
-            self.nn.maxpool_counter = 0
-            self.nn.residual_counter = 0
-            counter, var_list, model = create_model(self.nn, self.nn.specLB, self.nn.specUB, nlb, nub,self.relu_groups, self.nn.numlayer, False,relu_needed)
-            #model.setParam('Timeout',1000)
-            num_var = len(var_list)
-            output_size = num_var - counter
-
-
         if self.specnumber==0:
             for i in range(output_size):
                 flag = True
-                label = i
                 for j in range(output_size):
                     if self.domain == 'deepzono' or self.domain == 'refinezono':
                         if i!=j and not self.is_greater(self.man, element, i, j):
                             flag = False
                             break
                     else:
-                        if label!=j and not self.is_greater(self.man, element, label, j, self.use_area_heuristic):
-
-                            if(self.domain=='refinepoly'):
-                                obj = LinExpr()
-                                obj += 1*var_list[counter+label]
-                                obj += -1*var_list[counter + j]
-                                model.setObjective(obj,GRB.MINIMIZE)
-                                model.optimize()
-                                if model.Status!=2:
-                                    model.write("final.mps")
-                                    print (f"Model failed to solve, {model.Status}")
-                                    flag = False
-                                    break
-                                elif(model.objval<0):
-                                    flag = False
-                                    break
-
-                            else:
-                                flag = False
-                                break
-
-
+                        if i!=j and not self.is_greater(self.man, element, i, j, self.use_area_heuristic):
+                            flag = False
+                            break
                 if flag:
                     dominant_class = i
                     break
@@ -180,6 +135,10 @@ class Analyzer:
                         break
             if flag:
                 dominant_class = 3
-
+                
         elina_abstract0_free(self.man, element)
         return dominant_class, nlb, nub
+    
+    
+    
+    
