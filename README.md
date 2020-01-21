@@ -39,6 +39,38 @@ It will compute the robustness radius of the first 100 images in ./data/mnistcnn
 1. index
 2. robustness radius
 3. average time of each call to "isrobust"
- 
+
+
+More Experiments
+-----------------
+We also provide code in ./generate_images_cifar and ./generate_images_mnist to have more networks and images, to run them, please install [IBM/adversarial-robustness-toolbox](https://github.com/IBM/adversarial-robustness-toolbox.git) first. The code is straightforward, here
+are some examples.
+
+In generate_images_mnist
+```
+python3 train_fnn.py 3 100 relu
+```
+It will train a FNN network with 3 hiden layers each with 100 neurons.
+
+```
+python3 train_cnn.py 
+```
+It will train a CNN network on Mnist
+
+```
+python3 fgsm1.py acnn.h5 fgsm1.csv
+```
+It will generate at most 100 adversarial examples from successful FGSM (epsilon = 0.1) attacks on acnn.h5, saved in fgsm1.csv
+
+```
+python3 valid_wrong.py acnn.h5 valid.csv wrong.csv
+```
+It will generate at most 100 valid and wrong images on acnn.h5 saved in valid.csv and wrong.csv respectively
+
+
+
+
+
+
 
 
