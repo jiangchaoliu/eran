@@ -1,6 +1,7 @@
-This is a forked version of ERAN, the information of which is in org_README.d
+This is a modified version of ERAN, the information of which (including how to install it)
+is in ORG_README.md
 
-In this repository, we extended ERAN to compute robustness radius.
+We have extended ERAN to compute robustness radius.
 
 
 
@@ -10,7 +11,7 @@ Usage
 ```
 cd tf_verify
 
-python3 . --netname <path to the network file> --epsilon <float between 0 and 1> --domain <deepzono/deeppoly/refinezono/refinepoly> --category <path to images file> --startnum <int starting index> --endnum <int end index> --dataset <mnist/cifar10/>   [optional] --complete <True/False> --timeout_lp <float> --timeout_milp <float> 
+python3 . --netname <path to the network file> --epsilon <float between 0 and 1> --domain <deepzono/deeppoly/refinezono/refinepoly> --category <path to images file> --startnum <int starting index> --endnum <int end index> --dataset <mnist/cifar10>   [optional] --complete <True/False> 
 ```
 
 
@@ -18,6 +19,7 @@ python3 . --netname <path to the network file> --epsilon <float between 0 and 1>
 * ```<epsilon>```: maxmial possible robustness radius
 * ```<domain>```: the abstract domain used for verification
 * ```<complete>```: True/False for complete/incomplete verification, default is False
+* ```<dataset>```: Mnist/Cifar10 for different datasets
 * ```<category>```: the name of the file with input images, the file must be stored in ./tr_verify/data
 * ```<startnum/endnum>```: since the file with input images are with many images, we support only computing a part of the images, the indexes of which are between startnum and endnum 
 
@@ -29,46 +31,25 @@ python3 . --netname <path to the network file> --epsilon <float between 0 and 1>
 Example
 -------------
 
-L_oo Specification
 ```
-python3 . --netname ./nets/acnn.h5 --domain deepzono   --dataset mnist --skipnum 0 --endnum 100 --category mnistcnn_valid
+python3 . --netname ./nets/rcnn6t16_1.h5 --domain deepzono   --dataset mnist --start 0 --endnum 100 --category rcnn6t16_1_valid
 ```
 
-It will compute the robustness radius of the first 100 images in ./data/mnistcnn_valid.csv on the network ./nets/acnn.h5 with domain deepzono. The result will be sotred in "bound_mnistcnn_valid", which contains three parts:
+It will compute the robustness radius of the first 100 images in ./data/rcnn6t16_1_valid.csv on the network ./nets/rcnn6t16_1.h5 with domain deepzono. The result will be sotred in "bound_rcnn6t16_1_valid.txt", which contains two parts:
 
 1. index
 2. robustness radius
-3. average time of each call to "isrobust"
 
 
-More Experiments
------------------
-We also provide code in ./generate_images_cifar and ./generate_images_mnist to have more networks and images, to run them, please install [IBM/adversarial-robustness-toolbox](https://github.com/IBM/adversarial-robustness-toolbox.git) first. The code is straightforward, here
-are some examples.
+Compute Average Robustness Radius
 
-In generate_images_mnist
-```
-python3 train_fnn.py 3 100 relu
-```
-It will train a FNN network with 3 hiden layers each with 100 neurons.
+We provide the code to compute the average radius of several inputs. Its usage is quite similar to ``__main__.py''. Here is an example 
 
 ```
-python3 train_cnn.py 
+python3 average.py --netname ./nets/rcnn6t16_1.h5 --domain deepzono   --dataset mnist --start 0 --endnum 100 --category rcnn6t16_1_valid
 ```
-It will train a CNN network on Mnist
 
-```
-python3 fgsm1.py acnn.h5 fgsm1.csv
-```
-It will generate at most 100 adversarial examples from successful FGSM (epsilon = 0.1) attacks on acnn.h5, saved in fgsm1.csv
-
-```
-python3 valid_wrong.py acnn.h5 valid.csv wrong.csv
-```
-It will generate at most 100 valid and wrong images on acnn.h5 saved in valid.csv and wrong.csv respectively
-
-
-Experiments on minimal distortion from CLEVER can be conducted with the code [here](https://github.com/jiangchaoliu/CLEVER.git)
+This command will give the average robustness radius of the first 100 images in ./data/rcnn6t16_1_valid.csv on the network ./nets/rcnn6t16_1.h5 with domain deepzono.
 
 
 

@@ -343,13 +343,13 @@ elif zonotope_bool:
     else:
          print("Failed")
 else:
+    acc = 0
     for test in tests:
         if total_images < args.startnum:
             total_images+=1
             continue
         if total_images > args.endnum:
             break
-        f = open('bound_'+args.category+'.txt','a')
         mindelta = 0.000
         maxdelta = epsilon
         start = time.time()
@@ -367,9 +367,8 @@ else:
         print(netname,(end - start)/c, "seconds")
         total_images += 1
         result.append(mindelta)
-        f.write(str(total_images-1)+" "+str(mindelta)+" "+"\n")
-        f.close()
-
+        acc += mindelta
+    print('average is', acc/total_images)
 
 
 
